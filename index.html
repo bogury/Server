@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤형 운동 추천 프로그램</title>
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind 설정: Inter 폰트 사용 및 색상 정의
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4B5563', // 다크 그레이 (주요 텍스트, 버튼)
+                        secondary: '#F3F4F6', // 라이트 그레이 (배경 요소)
+                        accent: '#10B981', // 액센트 색상 (강조)
+                        danger: '#EF4444', // 칼로리 강조를 위한 붉은색
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-4 min-h-screen flex items-start sm:items-center justify-center font-sans">
+
+    <!-- 메인 컨테이너: 모던한 화이트 카드 디자인 -->
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transition-all duration-300 mt-8 sm:mt-0">
+
+        <!-- 제목 섹션 -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-4 border-b pb-2">맞춤형 운동 추천 (MET 기반)</h1>
+        <p class="text-sm text-gray-500 mb-6">정보를 입력하고 개인 맞춤형 운동 처방을 확인하세요.</p>
+
+        <!-- 탭 네비게이션 -->
+        <div id="tabs-nav" class="flex border-b border-gray-200 mb-4">
+            <button data-tab="input-tab" onclick="openTab('input-tab')" 
+                    class="tablink px-4 py-2 text-sm rounded-t-lg transition duration-150 mr-1 bg-primary text-white font-bold">
+                1. 정보 입력
+            </button>
+            <button data-tab="result-tab" onclick="openTab('result-tab')" 
+                    class="tablink px-4 py-2 text-sm rounded-t-lg transition duration-150 bg-gray-100 text-gray-600 hover:bg-gray-200">
+                2. 분석 결과
+            </button>
+        </div>
+
+        <!-- 1. 정보 입력 탭 내용 -->
+        <div id="input-tab" class="tabcontent space-y-4 mb-6">
+            
+            <div>
+                <label for="input-name" class="block text-sm font-medium text-gray-700 mb-1">이름:</label>
+                <input type="text" id="input-name" placeholder="홍길동"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-age" class="block text-sm font-medium text-gray-700 mb-1">나이 (만):</label>
+                <input type="number" id="input-age" placeholder="25"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-weight" class="block text-sm font-medium text-gray-700 mb-1">체중 (kg):</label>
+                <input type="number" id="input-weight" placeholder="70"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+            
+            <!-- 키 입력 필드 추가 -->
+            <div>
+                <label for="input-height" class="block text-sm font-medium text-gray-700 mb-1">키 (cm):</label>
+                <input type="number" id="input-height" placeholder="175"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-goal" class="block text-sm font-medium text-gray-700 mb-1">운동 목적:</label>
+                <select id="input-goal"
+                        class="w-full p-2 border border-gray-300 rounded-lg bg-white focus:ring-primary focus:border-primary transition duration-150">
+                    <option value="health">건강 관리 (저강도 MET)</option>
+                    <option value="diet">체중 감량 (중강도 MET)</option>
+                    <option value="muscle">체력 증진 (고강도 MET)</option>
+                </select>
+            </div>
+
+            <button onclick="updateAndSwitchToResults()" 
+                    class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition duration-200 shadow-md mt-4">
+                결과 분석 및 추천 보기
+            </button>
+        </div>
+
+        <!-- 2. 분석 결과 탭 내용 -->
+        <div id="result-tab" class="tabcontent" style="display: none;">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">분석 결과</h2>
+            
+            <div id="result-container" class="bg-secondary p-4 rounded-lg">
+                <p id="initial-message" class="text-gray-500 italic text-center">정보를 입력해주세요</p>
+
+                <div id="personalized-results" style="display: none;" class="space-y-2">
+                    
+                    <p class="text-lg font-bold text-gray-800">
+                        <span id="out-name" class="text-accent">사용자</span>님의 처방:
+                    </p>
+                    
+                    <div class="border-t pt-2 border-gray-300 space-y-1">
+                        <p class="text-sm text-gray-600">최대 심박수 (HRmax): <span id="out-max-hr" class="font-bold">0</span> BPM</p>
+                        <!-- BMI 정보 추가 -->
+                        <p class="text-sm text-gray-600">BMI (체질량 지수): <span id="out-bmi" class="font-bold">0.0</span></p>
+                        <p class="text-sm text-gray-600">BMI 진단: <span id="out-bmi-status" class="font-bold text-accent">미입력</span></p>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-primary pt-2 mt-4">추천 운동 종목</h3>
+                    <div class="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <p class="text-base font-extrabold text-primary flex items-center mb-1">
+                            <!-- 아이콘 표시를 위한 Span 추가 -->
+                            <span id="out-exercise-icon" class="text-2xl mr-2 text-accent"></span> 
+                            <span id="out-exercise">운동 이름</span>
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            <span id="out-desc">운동 설명</span>
+                        </p>
+                    </div>
+                    
+                    <!-- METs와 목표 시간 출력 -->
+                    <p class="mt-4 p-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+                        <span class="font-bold text-green-700">추천 운동 강도 (METs):</span> 
+                        <span id="out-met" class="font-extrabold text-green-800">0 ~ 0</span> METs
+                    </p>
+
+                    <!-- 칼로리 출력 섹션 추가 -->
+                    <p class="text-sm text-gray-600 border-t pt-2">
+                        주간 예상 소모 칼로리: 
+                        <span id="out-calories" class="font-extrabold text-danger">0</span> kcal
+                    </p>
+                    
+                    <p class="text-sm text-gray-600">목표 심박수 구간: <span id="out-target-hr" class="font-bold">0 ~ 0</span> BPM</p>
+                    <p class="text-sm text-gray-600">권장 운동 시간: 주 <span id="out-time" class="font-bold">0</span>분 이상</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. 추천 알고리즘 설명 -->
+        <div class="mt-6 pt-4 border-t border-gray-200 text-gray-500 text-xs leading-relaxed">
+            <strong class="text-gray-700">[알고리즘 설명 - MET 기반]</strong>
+            <p>
+                이 프로그램은 운동 목적에 따라 MET(대사 당량) 범위를 설정하고, 해당 범위에 맞는 운동을 추천합니다.
+                <br>
+                * **MET:** 1 MET는 휴식 시 에너지 소비량입니다. 숫자가 높을수록 고강도 운동을 의미합니다.
+                <br>
+                * **HRmax:** '220 - 나이'로 계산되며, 심박수 목표 구간은 MET 강도에 따라 배정됩니다.
+                <br>
+                * **BMI:** 체중(kg)을 키(m)의 제곱으로 나눈 값이며, 현재 체중 상태를 진단하는 데 사용됩니다.
+                <br>
+                * **칼로리:** 칼로리 소모량은 **0.0175 x MET x 체중(kg) x 시간(분)** 공식으로 계산됩니다.
+            </p>
+        </div>
+    </div>
+
+    <!-- JavaScript 로직 -->
+    <script>
+        // 탭 전환을 처리하는 핵심 함수
+        function openTab(tabName) {
+            let i, tabcontent, tablinks;
+            
+            // 모든 탭 내용을 숨김
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // 모든 탭 버튼의 활성화 스타일을 제거
+            tablinks = document.getElementsByClassName("tablink");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("bg-primary", "text-white", "font-bold");
+                tablinks[i].classList.add("bg-gray-100", "text-gray-600", "hover:bg-gray-200");
+            }
+
+            // 요청된 탭 내용과 버튼 활성화
+            document.getElementById(tabName).style.display = "block";
+            const currentTabLink = document.querySelector(`.tablink[data-tab="${tabName}"]`);
+            if (currentTabLink) {
+                currentTabLink.classList.add("bg-primary", "text-white", "font-bold");
+                currentTabLink.classList.remove("bg-gray-100", "text-gray-600", "hover:bg-gray-200");
+            }
+        }
+
+        // 결과를 업데이트하고 결과 탭으로 전환하는 함수
+        function updateAndSwitchToResults() {
+            // 기존 updateResults 로직 실행
+            const success = updateResults();
+            
+            // 성공적으로 계산이 완료되었다면 탭 전환
+            if (success) {
+                openTab('result-tab');
+            }
+        }
+
+        // 계산 로직 (키, BMI 계산 추가)
+        function updateResults() {
+            const name = document.getElementById("input-name").value.trim();
+            const ageInput = document.getElementById("input-age").value;
+            const weightInput = document.getElementById("input-weight").value;
+            const heightInput = document.getElementById("input-height").value; // 키 값 가져오기
+            
+            const age = parseInt(ageInput);
+            const weight = parseFloat(weightInput);
+            const height = parseFloat(heightInput); // 키는 소수점 가능하도록 parseFloat 사용
+            const goal = document.getElementById("input-goal").value;
+
+            const initialMessage = document.getElementById("initial-message");
+            const resultsSection = document.getElementById("personalized-results");
+
+            // 유효성 검사: 키(height) 유효성 검사 추가
+            if (name === "" || ageInput === "" || isNaN(age) || age < 1 || 
+                weightInput === "" || isNaN(weight) || weight <= 0 ||
+                heightInput === "" || isNaN(height) || height <= 0) { 
+                
+                initialMessage.innerText = "이름, 나이, 체중, 키를 정확히 입력해주세요.";
+                initialMessage.style.display = "block";
+                resultsSection.style.display = "none";
+                
+                return false; 
+            }
+
+            initialMessage.style.display = "none";
+            resultsSection.style.display = "block";
+
+            // 1. BMI 계산 및 진단
+            const heightM = height / 100; // cm를 m로 변환
+            const bmi = weight / (heightM * heightM);
+            const bmiRounded = bmi.toFixed(1);
+
+            let bmiStatus;
+            if (bmi < 18.5) {
+                bmiStatus = "저체중 (Underweight)";
+            } else if (bmi >= 18.5 && bmi < 23) {
+                bmiStatus = "정상 (Normal)";
+            } else if (bmi >= 23 && bmi < 25) {
+                bmiStatus = "과체중 (Overweight)";
+            } else if (bmi >= 25 && bmi < 30) {
+                bmiStatus = "비만 (Obesity Class I)";
+            } else {
+                bmiStatus = "고도 비만 (Obesity Class II & III)";
+            }
+
+            // 2. HRmax 및 MET 기반 계산
+            const maxHeartRate = 220 - age; 
+            let targetMin, targetMax, time, exerciseName, exerciseDesc, metValue, exerciseIcon; 
+            let metCalculation, calorieEstimate;
+
+            if (goal === "health") {
+                targetMin = Math.round(maxHeartRate * 0.5);
+                targetMax = Math.round(maxHeartRate * 0.6);
+                time = 150;
+                exerciseName = "빠르게 걷기 (3.5 METs), 요가 (3.0 METs)";
+                exerciseDesc = "심박수가 크게 오르지 않는 저강도 운동으로 일상 활력 유지에 초점을 둡니다.";
+                metValue = "3.0 ~ 4.0"; 
+                exerciseIcon = "🧘"; 
+                metCalculation = 3.5;
+            } else if (goal === "diet") {
+                targetMin = Math.round(maxHeartRate * 0.6);
+                targetMax = Math.round(maxHeartRate * 0.7);
+                time = 250;
+                exerciseName = "가벼운 조깅 (6.0 METs), 수영 (5.8 METs)";
+                exerciseDesc = "지방 연소 효율을 극대화하는 중강도 구간을 지속적으로 유지합니다.";
+                metValue = "4.0 ~ 7.0"; 
+                exerciseIcon = "🏃";
+                metCalculation = 5.5;
+            } else {
+                targetMin = Math.round(maxHeartRate * 0.7);
+                targetMax = Math.round(maxHeartRate * 0.85);
+                time = 150;
+                exerciseName = "인터벌 러닝 (8.0+ METs), 고강도 웨이트 (7.0 METs)";
+                exerciseDesc = "심폐 지구력과 근력을 빠르게 향상시키는 고강도 운동입니다.";
+                metValue = "7.0 ~ 9.0+"; 
+                exerciseIcon = "💪";
+                metCalculation = 8.0;
+            }
+
+            // 3. 칼로리 계산
+            calorieEstimate = Math.round(0.0175 * metCalculation * weight * time);
+
+            // 4. 결과 출력
+            document.getElementById("out-name").innerText = name;
+            document.getElementById("out-max-hr").innerText = maxHeartRate;
+            document.getElementById("out-bmi").innerText = bmiRounded;
+            document.getElementById("out-bmi-status").innerText = bmiStatus;
+            document.getElementById("out-exercise-icon").innerText = exerciseIcon; 
+            document.getElementById("out-exercise").innerText = exerciseName;
+            document.getElementById("out-desc").innerText = exerciseDesc;
+            document.getElementById("out-target-hr").innerText = targetMin + " ~ " + targetMax;
+            document.getElementById("out-met").innerText = metValue;
+            document.getElementById("out-time").innerText = time;
+            document.getElementById("out-calories").innerText = calorieEstimate.toLocaleString();
+
+            return true; 
+        }
+
+        // 페이지 로드 시 '정보 입력' 탭을 기본으로 표시
+        document.addEventListener('DOMContentLoaded', (event) => {
+            openTab('input-tab');
+        });
+    </script>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤형 운동 추천 프로그램</title>
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind 설정: Inter 폰트 사용 및 색상 정의
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4B5563', // 다크 그레이 (주요 텍스트, 버튼)
+                        secondary: '#F3F4F6', // 라이트 그레이 (배경 요소)
+                        accent: '#10B981', // 액센트 색상 (강조)
+                        danger: '#EF4444', // 칼로리 강조를 위한 붉은색
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-4 min-h-screen flex items-start sm:items-center justify-center font-sans">
+
+    <!-- 메인 컨테이너: 모던한 화이트 카드 디자인 -->
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transition-all duration-300 mt-8 sm:mt-0">
+
+        <!-- 제목 섹션 -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-4 border-b pb-2">맞춤형 운동 추천 (MET 기반)</h1>
+        <p class="text-sm text-gray-500 mb-6">정보를 입력하고 개인 맞춤형 운동 처방을 확인하세요.</p>
+
+        <!-- 탭 네비게이션 -->
+        <div id="tabs-nav" class="flex border-b border-gray-200 mb-4">
+            <button data-tab="input-tab" onclick="openTab('input-tab')" 
+                    class="tablink px-4 py-2 text-sm rounded-t-lg transition duration-150 mr-1 bg-primary text-white font-bold">
+                1. 정보 입력
+            </button>
+            <button data-tab="result-tab" onclick="openTab('result-tab')" 
+                    class="tablink px-4 py-2 text-sm rounded-t-lg transition duration-150 bg-gray-100 text-gray-600 hover:bg-gray-200">
+                2. 분석 결과
+            </button>
+        </div>
+
+        <!-- 1. 정보 입력 탭 내용 -->
+        <div id="input-tab" class="tabcontent space-y-4 mb-6">
+            
+            <div>
+                <label for="input-name" class="block text-sm font-medium text-gray-700 mb-1">이름:</label>
+                <input type="text" id="input-name" placeholder="홍길동"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-age" class="block text-sm font-medium text-gray-700 mb-1">나이 (만):</label>
+                <input type="number" id="input-age" placeholder="25"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-weight" class="block text-sm font-medium text-gray-700 mb-1">체중 (kg):</label>
+                <input type="number" id="input-weight" placeholder="70"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+            
+            <!-- 키 입력 필드 추가 -->
+            <div>
+                <label for="input-height" class="block text-sm font-medium text-gray-700 mb-1">키 (cm):</label>
+                <input type="number" id="input-height" placeholder="175"
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+            </div>
+
+            <div>
+                <label for="input-goal" class="block text-sm font-medium text-gray-700 mb-1">운동 목적:</label>
+                <select id="input-goal"
+                        class="w-full p-2 border border-gray-300 rounded-lg bg-white focus:ring-primary focus:border-primary transition duration-150">
+                    <option value="health">건강 관리 (저강도 MET)</option>
+                    <option value="diet">체중 감량 (중강도 MET)</option>
+                    <option value="muscle">체력 증진 (고강도 MET)</option>
+                </select>
+            </div>
+
+            <button onclick="updateAndSwitchToResults()" 
+                    class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition duration-200 shadow-md mt-4">
+                결과 분석 및 추천 보기
+            </button>
+        </div>
+
+        <!-- 2. 분석 결과 탭 내용 -->
+        <div id="result-tab" class="tabcontent" style="display: none;">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">분석 결과</h2>
+            
+            <div id="result-container" class="bg-secondary p-4 rounded-lg">
+                <p id="initial-message" class="text-gray-500 italic text-center">정보를 입력해주세요</p>
+
+                <div id="personalized-results" style="display: none;" class="space-y-2">
+                    
+                    <p class="text-lg font-bold text-gray-800">
+                        <span id="out-name" class="text-accent">사용자</span>님의 처방:
+                    </p>
+                    
+                    <div class="border-t pt-2 border-gray-300 space-y-1">
+                        <p class="text-sm text-gray-600">최대 심박수 (HRmax): <span id="out-max-hr" class="font-bold">0</span> BPM</p>
+                        <!-- BMI 정보 추가 -->
+                        <p class="text-sm text-gray-600">BMI (체질량 지수): <span id="out-bmi" class="font-bold">0.0</span></p>
+                        <p class="text-sm text-gray-600">BMI 진단: <span id="out-bmi-status" class="font-bold text-accent">미입력</span></p>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-primary pt-2 mt-4">추천 운동 종목</h3>
+                    <div class="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <p class="text-base font-extrabold text-primary flex items-center mb-1">
+                            <!-- 아이콘 표시를 위한 Span 추가 -->
+                            <span id="out-exercise-icon" class="text-2xl mr-2 text-accent"></span> 
+                            <span id="out-exercise">운동 이름</span>
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            <span id="out-desc">운동 설명</span>
+                        </p>
+                    </div>
+                    
+                    <!-- METs와 목표 시간 출력 -->
+                    <p class="mt-4 p-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+                        <span class="font-bold text-green-700">추천 운동 강도 (METs):</span> 
+                        <span id="out-met" class="font-extrabold text-green-800">0 ~ 0</span> METs
+                    </p>
+
+                    <!-- 칼로리 출력 섹션 추가 -->
+                    <p class="text-sm text-gray-600 border-t pt-2">
+                        주간 예상 소모 칼로리: 
+                        <span id="out-calories" class="font-extrabold text-danger">0</span> kcal
+                    </p>
+                    
+                    <p class="text-sm text-gray-600">목표 심박수 구간: <span id="out-target-hr" class="font-bold">0 ~ 0</span> BPM</p>
+                    <p class="text-sm text-gray-600">권장 운동 시간: 주 <span id="out-time" class="font-bold">0</span>분 이상</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. 추천 알고리즘 설명 -->
+        <div class="mt-6 pt-4 border-t border-gray-200 text-gray-500 text-xs leading-relaxed">
+            <strong class="text-gray-700">[알고리즘 설명 - MET 기반]</strong>
+            <p>
+                이 프로그램은 운동 목적에 따라 MET(대사 당량) 범위를 설정하고, 해당 범위에 맞는 운동을 추천합니다.
+                <br>
+                * **MET:** 1 MET는 휴식 시 에너지 소비량입니다. 숫자가 높을수록 고강도 운동을 의미합니다.
+                <br>
+                * **HRmax:** '220 - 나이'로 계산되며, 심박수 목표 구간은 MET 강도에 따라 배정됩니다.
+                <br>
+                * **BMI:** 체중(kg)을 키(m)의 제곱으로 나눈 값이며, 현재 체중 상태를 진단하는 데 사용됩니다.
+                <br>
+                * **칼로리:** 칼로리 소모량은 **0.0175 x MET x 체중(kg) x 시간(분)** 공식으로 계산됩니다.
+            </p>
+        </div>
+    </div>
+
+    <!-- JavaScript 로직 -->
+    <script>
+        // 탭 전환을 처리하는 핵심 함수
+        function openTab(tabName) {
+            let i, tabcontent, tablinks;
+            
+            // 모든 탭 내용을 숨김
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // 모든 탭 버튼의 활성화 스타일을 제거
+            tablinks = document.getElementsByClassName("tablink");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("bg-primary", "text-white", "font-bold");
+                tablinks[i].classList.add("bg-gray-100", "text-gray-600", "hover:bg-gray-200");
+            }
+
+            // 요청된 탭 내용과 버튼 활성화
+            document.getElementById(tabName).style.display = "block";
+            const currentTabLink = document.querySelector(`.tablink[data-tab="${tabName}"]`);
+            if (currentTabLink) {
+                currentTabLink.classList.add("bg-primary", "text-white", "font-bold");
+                currentTabLink.classList.remove("bg-gray-100", "text-gray-600", "hover:bg-gray-200");
+            }
+        }
+
+        // 결과를 업데이트하고 결과 탭으로 전환하는 함수
+        function updateAndSwitchToResults() {
+            // 기존 updateResults 로직 실행
+            const success = updateResults();
+            
+            // 성공적으로 계산이 완료되었다면 탭 전환
+            if (success) {
+                openTab('result-tab');
+            }
+        }
+
+        // 계산 로직 (키, BMI 계산 추가)
+        function updateResults() {
+            const name = document.getElementById("input-name").value.trim();
+            const ageInput = document.getElementById("input-age").value;
+            const weightInput = document.getElementById("input-weight").value;
+            const heightInput = document.getElementById("input-height").value; // 키 값 가져오기
+            
+            const age = parseInt(ageInput);
+            const weight = parseFloat(weightInput);
+            const height = parseFloat(heightInput); // 키는 소수점 가능하도록 parseFloat 사용
+            const goal = document.getElementById("input-goal").value;
+
+            const initialMessage = document.getElementById("initial-message");
+            const resultsSection = document.getElementById("personalized-results");
+
+            // 유효성 검사: 키(height) 유효성 검사 추가
+            if (name === "" || ageInput === "" || isNaN(age) || age < 1 || 
+                weightInput === "" || isNaN(weight) || weight <= 0 ||
+                heightInput === "" || isNaN(height) || height <= 0) { 
+                
+                initialMessage.innerText = "이름, 나이, 체중, 키를 정확히 입력해주세요.";
+                initialMessage.style.display = "block";
+                resultsSection.style.display = "none";
+                
+                return false; 
+            }
+
+            initialMessage.style.display = "none";
+            resultsSection.style.display = "block";
+
+            // 1. BMI 계산 및 진단
+            const heightM = height / 100; // cm를 m로 변환
+            const bmi = weight / (heightM * heightM);
+            const bmiRounded = bmi.toFixed(1);
+
+            let bmiStatus;
+            if (bmi < 18.5) {
+                bmiStatus = "저체중 (Underweight)";
+            } else if (bmi >= 18.5 && bmi < 23) {
+                bmiStatus = "정상 (Normal)";
+            } else if (bmi >= 23 && bmi < 25) {
+                bmiStatus = "과체중 (Overweight)";
+            } else if (bmi >= 25 && bmi < 30) {
+                bmiStatus = "비만 (Obesity Class I)";
+            } else {
+                bmiStatus = "고도 비만 (Obesity Class II & III)";
+            }
+
+            // 2. HRmax 및 MET 기반 계산
+            const maxHeartRate = 220 - age; 
+            let targetMin, targetMax, time, exerciseName, exerciseDesc, metValue, exerciseIcon; 
+            let metCalculation, calorieEstimate;
+
+            if (goal === "health") {
+                targetMin = Math.round(maxHeartRate * 0.5);
+                targetMax = Math.round(maxHeartRate * 0.6);
+                time = 150;
+                exerciseName = "빠르게 걷기 (3.5 METs), 요가 (3.0 METs)";
+                exerciseDesc = "심박수가 크게 오르지 않는 저강도 운동으로 일상 활력 유지에 초점을 둡니다.";
+                metValue = "3.0 ~ 4.0"; 
+                exerciseIcon = "🧘"; 
+                metCalculation = 3.5;
+            } else if (goal === "diet") {
+                targetMin = Math.round(maxHeartRate * 0.6);
+                targetMax = Math.round(maxHeartRate * 0.7);
+                time = 250;
+                exerciseName = "가벼운 조깅 (6.0 METs), 수영 (5.8 METs)";
+                exerciseDesc = "지방 연소 효율을 극대화하는 중강도 구간을 지속적으로 유지합니다.";
+                metValue = "4.0 ~ 7.0"; 
+                exerciseIcon = "🏃";
+                metCalculation = 5.5;
+            } else {
+                targetMin = Math.round(maxHeartRate * 0.7);
+                targetMax = Math.round(maxHeartRate * 0.85);
+                time = 150;
+                exerciseName = "인터벌 러닝 (8.0+ METs), 고강도 웨이트 (7.0 METs)";
+                exerciseDesc = "심폐 지구력과 근력을 빠르게 향상시키는 고강도 운동입니다.";
+                metValue = "7.0 ~ 9.0+"; 
+                exerciseIcon = "💪";
+                metCalculation = 8.0;
+            }
+
+            // 3. 칼로리 계산
+            calorieEstimate = Math.round(0.0175 * metCalculation * weight * time);
+
+            // 4. 결과 출력
+            document.getElementById("out-name").innerText = name;
+            document.getElementById("out-max-hr").innerText = maxHeartRate;
+            document.getElementById("out-bmi").innerText = bmiRounded;
+            document.getElementById("out-bmi-status").innerText = bmiStatus;
+            document.getElementById("out-exercise-icon").innerText = exerciseIcon; 
+            document.getElementById("out-exercise").innerText = exerciseName;
+            document.getElementById("out-desc").innerText = exerciseDesc;
+            document.getElementById("out-target-hr").innerText = targetMin + " ~ " + targetMax;
+            document.getElementById("out-met").innerText = metValue;
+            document.getElementById("out-time").innerText = time;
+            document.getElementById("out-calories").innerText = calorieEstimate.toLocaleString();
+
+            return true; 
+        }
+
+        // 페이지 로드 시 '정보 입력' 탭을 기본으로 표시
+        document.addEventListener('DOMContentLoaded', (event) => {
+            openTab('input-tab');
+        });
+    </script>
+
+</body>
+</html>
+
